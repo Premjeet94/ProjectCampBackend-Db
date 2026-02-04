@@ -3,7 +3,7 @@ import { UserRolesEnum } from "../utils/constants";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-  
+
 const userSchema = new Schema(
   {
     avatarUrl: {
@@ -112,12 +112,12 @@ userSchema.pre("save", async function (next) {
 });
 userSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.password);
-}
+};
 userSchema.methods.generateAccessToken = function () {
   const payload = {
     id: this._id,
     role: this.role,
-    email: this.email,  
+    email: this.email,
   };
   return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
@@ -125,9 +125,19 @@ userSchema.methods.generateAccessToken = function () {
 };
 userSchema.methods.generateRefreshToken = function () {
   const payload = {
-    id: this._id,};
+    id: this._id,
+  };
   return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
     expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
   });
+};
+userSchema.methods.generateTempToken = function () {
+  const unHashedToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(unHashedToken)
+    .digest("hex");
+  const tokenExpiry = Date.now() + 20 * 60 * 1000; // 20 minutes from now
+  return { unHashedToken, hashedToken, tokenExpiry };
 };
 export const User = mongoose.model("User", userSchema);
